@@ -56,7 +56,7 @@ struct headers {
 *********************** P A R S E R  ***********************************
 *************************************************************************/
 
-// TODO: Update the parser to parse the myTunnel header as well
+// NOTE: Updated the parser to parse the myTunnel header as well
 parser MyParser(packet_in packet,
                 out headers hdr,
                 inout metadata meta,
@@ -131,14 +131,14 @@ control MyIngress(inout headers hdr,
         default_action = drop();
     }
 
-    // TODO: declare a new action: myTunnel_forward(egressSpec_t port)
+    // NOTE: declared a new action: myTunnel_forward(egressSpec_t port)
     action myTunnel_forward(egressSpec_t port) {
         standard_metadata.egress_spec = port;
     }
 
 
-    // TODO: declare a new table: myTunnel_exact
-    // TODO: also remember to add table entries!
+    // NOTE: declared a new table: myTunnel_exact
+    // NOTE: table entries were already declared on s*-runtime.json!
     table myTunnel_exact {
         key = {
             hdr.myTunnel.dst_id: exact;
@@ -154,7 +154,7 @@ control MyIngress(inout headers hdr,
 
 
     apply {
-        // TODO: Update control flow
+        // NOTE: Updated control flow
         if (hdr.myTunnel.isValid()) {
             myTunnel_exact.apply();
         } 
@@ -205,7 +205,7 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
 control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
-        // TODO: emit myTunnel header as well
+        // NOTE: emits myTunnel header as well
         packet.emit(hdr.myTunnel);
         packet.emit(hdr.ipv4);
     }
