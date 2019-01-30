@@ -4,6 +4,7 @@
 
 const bit<16> TYPE_IPV4 = 0x0800;
 const bit<16> TYPE_IPV6 = 0x86DD;
+const bit<32> MIRROR_SESSION = 0x1;
 
 /************************************************************************
 *********************** H E A D E R S  **********************************
@@ -133,7 +134,9 @@ control MyIngress(inout headers hdr,
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
         standard_metadata.egress_spec = port;
         hdr.ethernet.dstAddr = dstAddr;  
-        hdr.ipv4.ttl = hdr.ipv4.ttl - 1;        
+        hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
+	clone(CloneType.I2E, MIRROR_SESSION);
+	        
     }
     
     table ipv4_lpm {

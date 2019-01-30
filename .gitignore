@@ -5,6 +5,9 @@
 # Emacs
 *~
 
+# Vim
+*.swp
+
 # Compiled JSON
 *.json
 !*p4app.json
