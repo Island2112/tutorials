@@ -20,7 +20,8 @@ SWITCH_TO_SWITCH_PORT = 2
 
 
 def setupMirrorSession(p4info_helper, switch, session_id, egress_port):
-    pre_entry = p4info_helper.buildMirrorSessionEntry(session_id, egress_port)
+    mirror_session = p4info_helper.buildMirrorSessionEntry(session_id, egress_port)
+    switch.WriteMirrorSession(mirror_session, dry_run=False)
 
 
 def writeTunnelRules(p4info_helper, ingress_sw, egress_sw, tunnel_id,
@@ -184,8 +185,8 @@ def main(p4info_file_path, bmv2_file_path):
         readTableRules(p4info_helper, s2)
 
         # Print the tunnel counters every 2 seconds
-        # while True:
-        #     sleep(2)
+        while True:
+            sleep(2)
         #     print '\n----- Reading tunnel counters -----'
         #     printCounter(p4info_helper, s1, "MyIngress.ingressTunnelCounter", 100)
         #     printCounter(p4info_helper, s2, "MyIngress.egressTunnelCounter", 100)

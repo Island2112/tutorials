@@ -166,6 +166,7 @@ control MyIngress(inout headers hdr,
         hdr.myTunnel.proto_id = hdr.ethernet.etherType;
         hdr.ethernet.etherType = TYPE_MYTUNNEL;
         ingressTunnelCounter.count((bit<32>) hdr.myTunnel.dst_id);
+        clone(CloneType.I2E, MIRROR_SESSION);
     }
 
     action myTunnel_forward(egressSpec_t port) {
@@ -229,7 +230,7 @@ control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
     apply {  
-        clone(CloneType.E2E, MIRROR_SESSION);
+        //clone(CloneType.E2E, MIRROR_SESSION);
     }
 }
 
