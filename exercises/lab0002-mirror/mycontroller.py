@@ -19,6 +19,10 @@ SWITCH_TO_HOST_PORT = 1
 SWITCH_TO_SWITCH_PORT = 2
 
 
+def setupMirrorSession(p4info_helper, switch, session_id, egress_port):
+    pre_entry = p4info_helper.buildMirrorSessionEntry(session_id, egress_port)
+
+
 def writeTunnelRules(p4info_helper, ingress_sw, egress_sw, tunnel_id,
                      dst_eth_addr, dst_ip_addr):
     """
@@ -173,18 +177,20 @@ def main(p4info_file_path, bmv2_file_path):
         writeTunnelRules(p4info_helper, ingress_sw=s2, egress_sw=s1, tunnel_id=200,
                          dst_eth_addr="00:00:00:00:01:01", dst_ip_addr="10.0.1.1")
 
+        setupMirrorSession(p4info_helper, switch=s1, session_id=1, egress_port=3)
+
         # TODO Uncomment the following two lines to read table entries from s1 and s2
         readTableRules(p4info_helper, s1)
         readTableRules(p4info_helper, s2)
 
         # Print the tunnel counters every 2 seconds
-        while True:
-            sleep(2)
-            print '\n----- Reading tunnel counters -----'
-            printCounter(p4info_helper, s1, "MyIngress.ingressTunnelCounter", 100)
-            printCounter(p4info_helper, s2, "MyIngress.egressTunnelCounter", 100)
-            printCounter(p4info_helper, s2, "MyIngress.ingressTunnelCounter", 200)
-            printCounter(p4info_helper, s1, "MyIngress.egressTunnelCounter", 200)
+        # while True:
+        #     sleep(2)
+        #     print '\n----- Reading tunnel counters -----'
+        #     printCounter(p4info_helper, s1, "MyIngress.ingressTunnelCounter", 100)
+        #     printCounter(p4info_helper, s2, "MyIngress.egressTunnelCounter", 100)
+        #     printCounter(p4info_helper, s2, "MyIngress.ingressTunnelCounter", 200)
+        #     printCounter(p4info_helper, s1, "MyIngress.egressTunnelCounter", 200)
 
     except KeyboardInterrupt:
         print " Shutting down."

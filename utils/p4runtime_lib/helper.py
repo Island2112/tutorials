@@ -191,3 +191,13 @@ class P4InfoHelper(object):
                     for field_name, value in action_params.iteritems()
                 ])
         return table_entry
+
+    def buildMirrorSessionEntry(self,
+                               session_id,
+                               egress_port):
+        clone_entry = p4runtime_pb2.CloneSessionEntry()
+
+        clone_entry.session_id = session_id
+        clone_entry.egress_port = egress_port
+
+        return clone_entry

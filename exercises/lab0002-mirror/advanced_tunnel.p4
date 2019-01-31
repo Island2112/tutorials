@@ -158,7 +158,6 @@ control MyIngress(inout headers hdr,
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
-        clone(CloneType.I2E, MIRROR_SESSION);
     }
 
     action myTunnel_ingress(bit<16> dst_id) {
@@ -229,7 +228,9 @@ control MyIngress(inout headers hdr,
 control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
-    apply {  }
+    apply {  
+        clone(CloneType.E2E, MIRROR_SESSION);
+    }
 }
 
 /*************************************************************************
