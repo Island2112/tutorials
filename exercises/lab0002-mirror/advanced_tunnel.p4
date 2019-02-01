@@ -166,7 +166,6 @@ control MyIngress(inout headers hdr,
         hdr.myTunnel.proto_id = hdr.ethernet.etherType;
         hdr.ethernet.etherType = TYPE_MYTUNNEL;
         ingressTunnelCounter.count((bit<32>) hdr.myTunnel.dst_id);
-        //clone(CloneType.I2E, MIRROR_SESSION);
     }
 
     action myTunnel_forward(egressSpec_t port) {
@@ -181,6 +180,17 @@ control MyIngress(inout headers hdr,
         egressTunnelCounter.count((bit<32>) hdr.myTunnel.dst_id);
     }
 
+    table blockedPorts_exact {
+        key = {
+            standard_metadata.ingress_port: exact;
+        }
+        actions = {
+            NoAction;
+            drop;
+        }
+        default_action = NoAction();
+    }
+
     table ipv4_lpm {
         key = {
             hdr.ipv4.dstAddr: lpm;
@@ -189,10 +199,9 @@ control MyIngress(inout headers hdr,
             ipv4_forward;
             myTunnel_ingress;
             drop;
-            NoAction;
         }
         size = 1024;
-        default_action = NoAction();
+        default_action = drop();
     }
 
     table myTunnel_exact {
@@ -209,6 +218,10 @@ control MyIngress(inout headers hdr,
     }
 
     apply {
+        
+        blockedPorts_exact.apply();
+
+
         if (hdr.ipv4.isValid() && !hdr.myTunnel.isValid()) {
             // Process only non-tunneled IPv4 packets.
             ipv4_lpm.apply();
@@ -229,9 +242,40 @@ control MyIngress(inout headers hdr,
 control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
-    apply {  
-        clone(CloneType.E2E, MIRROR_SESSION);
+ 
+    // Loosely based on http://csie.nqu.edu.tw/smallko/sdn/p4-clone.htm 
+
+    action action_clone_e2e() {
+        clone3(CloneType.E2E, MIRROR_SESSION, standard_metadata);
     }
+
+    table table_clone_e2e {
+        actions = {
+            action_clone_e2e;
+        }
+        size = 1;
+        default_action = action_clone_e2e();
+    }
+
+    apply {
+        table_clone_e2e.apply();
+    }
+
+/*    apply {
+
+        if (standard_metadata.clone_spec == 0) {
+            clone(CloneType.E2E, MIRROR_SESSION);
+        }
+        else { 
+
+        }
+
+    }
+*/
+
+/*    apply { }
+*/
+
 }
 
 /*************************************************************************
