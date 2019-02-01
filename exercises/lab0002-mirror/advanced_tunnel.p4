@@ -243,10 +243,10 @@ control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
  
-    // Loosely based on http://csie.nqu.edu.tw/smallko/sdn/p4-clone.htm 
+    // Table loosely based on http://csie.nqu.edu.tw/smallko/sdn/p4-clone.htm 
 
     action action_clone_e2e() {
-        clone3(CloneType.E2E, MIRROR_SESSION, standard_metadata);
+        clone(CloneType.E2E, MIRROR_SESSION);
     }
 
     table table_clone_e2e {
@@ -258,23 +258,12 @@ control MyEgress(inout headers hdr,
     }
 
     apply {
-        table_clone_e2e.apply();
-    }
 
-/*    apply {
-
-        if (standard_metadata.clone_spec == 0) {
-            clone(CloneType.E2E, MIRROR_SESSION);
-        }
-        else { 
-
+        if (standard_metadata.instance_type == 0) {
+            table_clone_e2e.apply();
         }
 
     }
-*/
-
-/*    apply { }
-*/
 
 }
 
