@@ -21,7 +21,7 @@ SWITCH_TO_SWITCH_PORT = 2
 
 def setupMirrorSession(p4info_helper, switch, session_id, egress_port):
     mirror_session = p4info_helper.buildMirrorSessionEntry(session_id, egress_port)
-    switch.WriteMirrorSession(mirror_session, dry_run=True) # For now this is unimplemented.
+    switch.WriteMirrorSession(mirror_session, dry_run=False) # For now this is unimplemented.
 
 
 def writeTunnelRules(p4info_helper, ingress_sw, egress_sw, tunnel_id,
@@ -159,8 +159,8 @@ def main(p4info_file_path, bmv2_file_path):
 
         # Send master arbitration update message to establish this controller as
         # master (required by P4Runtime before performing any other write operation)
-        s1.MasterArbitrationUpdate()
-        s2.MasterArbitrationUpdate()
+        # s1.MasterArbitrationUpdate()
+        # s2.MasterArbitrationUpdate()
 
         # Install the P4 program on the switches
         s1.SetForwardingPipelineConfig(p4info=p4info_helper.p4info,
