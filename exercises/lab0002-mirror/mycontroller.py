@@ -159,8 +159,8 @@ def main(p4info_file_path, bmv2_file_path):
 
         # Send master arbitration update message to establish this controller as
         # master (required by P4Runtime before performing any other write operation)
-        # s1.MasterArbitrationUpdate()
-        # s2.MasterArbitrationUpdate()
+        s1.MasterArbitrationUpdate()
+        s2.MasterArbitrationUpdate()
 
         # Install the P4 program on the switches
         s1.SetForwardingPipelineConfig(p4info=p4info_helper.p4info,

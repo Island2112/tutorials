@@ -196,10 +196,12 @@ class P4InfoHelper(object):
                                session_id,
                                egress_port):
         
-        pre_entry = p4runtime_pb2.PacketReplicationEngineEntry()
+        pre_entry    = p4runtime_pb2.PacketReplicationEngineEntry()
         mirror_entry = p4runtime_pb2.CloneSessionEntry()
+        replica      = p4runtime_pb2.Replica()
+        replica.egress_port = egress_port
         mirror_entry.session_id = session_id
-        mirror_entry.egress_port = egress_port
+        mirror_entry.replicas.add().CopyFrom(replica)
         pre_entry.clone_session_entry.CopyFrom(mirror_entry)
 
         return pre_entry
