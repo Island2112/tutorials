@@ -21,7 +21,7 @@ SWITCH_TO_SWITCH_PORT = 2
 
 def setupMirrorSession(p4info_helper, switch, session_id, egress_port):
     mirror_session = p4info_helper.buildMirrorSessionEntry(session_id, egress_port)
-    switch.WriteMirrorSession(mirror_session, dry_run=False) # For now this is unimplemented.
+    switch.WriteMirrorSession(mirror_session, dry_run=False)
 
 
 def writeTunnelRules(p4info_helper, ingress_sw, egress_sw, tunnel_id,
