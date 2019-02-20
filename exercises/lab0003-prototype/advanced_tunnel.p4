@@ -2,8 +2,15 @@
 #include <core.p4>
 #include <v1model.p4>
 
-const bit<16> TYPE_IPV4 = 0x800;
-const bit<16> TYPE_IPV6 = 0x86DD;
+const bit<16> TYPE_IPV4  = 0x0800;
+const bit<16> TYPE_IPV6  = 0x86DD;
+
+const bit<8> TYPE_ICMP   = 0x01;
+const bit<8> TYPE_ICMPV6 = 0x3A;
+const bit<8> TYPE_TCP    = 0x06;
+const bit<8> TYPE_UDP    = 0x11;
+
+
 const bit<32> MIRROR_SESSION = 0x1;
 
 const bit<16> TYPE_MYTUNNEL = 0x1212;
@@ -55,15 +62,54 @@ header ipv6_t {
     ip6Addr_t dstAddr;
 }
 
+// Header definitions for ICMP, TCP, and UDP were derived from:
+// github.com/p4lang/papers/blob/master/sosr15/DC.p4/includes/headers.p4
+
+header icmp_t {
+    bit<8>    type_;
+    bit<8>    code;
+    bit<16>   hdrChecksum;
+}
+
+header icmpv6_t {
+    bit<8>    type_;
+    bit<8>    code;
+    bit<16>   hdrChecksum;
+}
+
+header tcp_t {
+    bit<16>   srcPort;
+    bit<16>   dstPort;
+    bit<32>   seqNo;
+    bit<32>   ackNo;
+    bit<4>    dataOffset;
+    bit<4>    res;
+    bit<8>    flags;
+    bit<16>   window;
+    bit<16>   checksum;
+    bit<16>   urgentPtr;
+}
+
+header udp_t {
+    bit<16>   srcPort;
+    bit<16>   dstPort;
+    bit<16>   length_;
+    bit<16>   checksum;
+}
+
 struct metadata {
     /* empty */
 }
 
 struct headers {
-    ethernet_t   ethernet;
-    myTunnel_t   myTunnel;
-    ipv4_t       ipv4;
-    ipv6_t       ipv6;  
+    ethernet_t  ethernet;
+    myTunnel_t  myTunnel;
+    ipv4_t      ipv4;
+    ipv6_t      ipv6;
+    icmp_t      icmp;
+    icmpv6_t    icmpv6;
+    tcp_t       tcp;
+    udp_t       udp;  
 }
 
 /*************************************************************************
@@ -83,9 +129,9 @@ parser MyParser(packet_in packet,
         packet.extract(hdr.ethernet);
         transition select(hdr.ethernet.etherType) {
             TYPE_MYTUNNEL: parse_myTunnel;
-            TYPE_IPV4: parse_ipv4;
-            TYPE_IPV6: parse_ipv6;            
-            default: accept;
+            TYPE_IPV4:     parse_ipv4;
+            TYPE_IPV6:     parse_ipv6;            
+            default:       accept;
         }
     }
 
@@ -97,14 +143,44 @@ parser MyParser(packet_in packet,
         }
     }
 
+    state parse_icmp {
+        packet.extract(hdr.icmp);
+        transition accept;
+    }
+
+    state parse_icmpv6 {
+        packet.extract(hdr.icmpv6);
+        transition accept;
+    }
+
+    state parse_tcp {
+        packet.extract(hdr.tcp);
+        transition accept;
+    }
+
+    state parse_udp {
+        packet.extract(hdr.udp);
+        transition accept;
+    }
+
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
-        transition accept;
+        transition select(hdr.ipv4.protocol) {
+            TYPE_ICMP: parse_icmp;
+            TYPE_TCP:  parse_tcp;
+            TYPE_UDP:  parse_udp;
+            default:   accept;
+        }
     }
 
     state parse_ipv6 {
         packet.extract(hdr.ipv6);
-        transition accept;
+        transition select(hdr.ipv6.nextHeader) {
+            TYPE_ICMPV6: parse_icmpv6; 
+            TYPE_TCP:    parse_tcp;
+            TYPE_UDP:    parse_udp;
+            default:     accept;
+        }
     }    
 
 }
@@ -300,6 +376,11 @@ control MyDeparser(packet_out packet, in headers hdr) {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.myTunnel);
         packet.emit(hdr.ipv4);
+        packet.emit(hdr.ipv6);
+        packet.emit(hdr.icmp);
+        packet.emit(hdr.icmpv6);
+        packet.emit(hdr.tcp);
+        packet.emit(hdr.udp);
     }
 }
 
