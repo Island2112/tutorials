@@ -1,4 +1,15 @@
-/* -*- P4_16 -*- */
+/*
+
+Credits: 
+
+Header definitions for ICMP, TCP, and UDP were inspired by:
+https://github.com/p4lang/papers/blob/master/sosr15/DC.p4/includes/headers.p4
+
+Egress table_clone_e2e and action_clone_e2e were inspired by:
+Table loosely based on http://csie.nqu.edu.tw/smallko/sdn/p4-clone.htm 
+
+*/
+
 #include <core.p4>
 #include <v1model.p4>
 
@@ -10,30 +21,21 @@ const bit<8> TYPE_ICMPV6 = 0x3A;
 const bit<8> TYPE_TCP    = 0x06;
 const bit<8> TYPE_UDP    = 0x11;
 
-
 const bit<32> MIRROR_SESSION = 0x1;
-
-const bit<16> TYPE_MYTUNNEL = 0x1212;
-const bit<32> MAX_TUNNEL_ID = 1 << 16;
 
 /*************************************************************************
 *********************** H E A D E R S  ***********************************
 *************************************************************************/
 
-typedef bit<9>  egressSpec_t;
-typedef bit<48> macAddr_t;
-typedef bit<32> ip4Addr_t;
+typedef bit<9>   egressSpec_t;
+typedef bit<48>  macAddr_t;
+typedef bit<32>  ip4Addr_t;
 typedef bit<128> ip6Addr_t;
 
 header ethernet_t {
     macAddr_t dstAddr;
     macAddr_t srcAddr;
     bit<16>   etherType;
-}
-
-header myTunnel_t {
-    bit<16> proto_id;
-    bit<16> dst_id;
 }
 
 header ipv4_t {
@@ -61,9 +63,6 @@ header ipv6_t {
     ip6Addr_t srcAddr;
     ip6Addr_t dstAddr;
 }
-
-// Header definitions for ICMP, TCP, and UDP were derived from:
-// github.com/p4lang/papers/blob/master/sosr15/DC.p4/includes/headers.p4
 
 header icmp_t {
     bit<8>    type_;
@@ -98,12 +97,11 @@ header udp_t {
 }
 
 struct metadata {
-    /* empty */
+
 }
 
-struct headers {
+struct headers  {
     ethernet_t  ethernet;
-    myTunnel_t  myTunnel;
     ipv4_t      ipv4;
     ipv6_t      ipv6;
     icmp_t      icmp;
@@ -125,44 +123,17 @@ parser MyParser(packet_in packet,
         transition parse_ethernet;
     }
 
+    // Layer 2
     state parse_ethernet {
         packet.extract(hdr.ethernet);
         transition select(hdr.ethernet.etherType) {
-            TYPE_MYTUNNEL: parse_myTunnel;
             TYPE_IPV4:     parse_ipv4;
             TYPE_IPV6:     parse_ipv6;            
             default:       accept;
         }
     }
 
-    state parse_myTunnel {
-        packet.extract(hdr.myTunnel);
-        transition select(hdr.myTunnel.proto_id) {
-            TYPE_IPV4: parse_ipv4;
-            default: accept;
-        }
-    }
-
-    state parse_icmp {
-        packet.extract(hdr.icmp);
-        transition accept;
-    }
-
-    state parse_icmpv6 {
-        packet.extract(hdr.icmpv6);
-        transition accept;
-    }
-
-    state parse_tcp {
-        packet.extract(hdr.tcp);
-        transition accept;
-    }
-
-    state parse_udp {
-        packet.extract(hdr.udp);
-        transition accept;
-    }
-
+    // Layer 3
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
         transition select(hdr.ipv4.protocol) {
@@ -182,6 +153,28 @@ parser MyParser(packet_in packet,
             default:     accept;
         }
     }    
+
+    state parse_icmp {
+        packet.extract(hdr.icmp);
+        transition accept;
+    }
+
+    state parse_icmpv6 {
+        packet.extract(hdr.icmpv6);
+        transition accept;
+    }
+
+    // Layer 4 
+    state parse_tcp {
+        packet.extract(hdr.tcp);
+        transition accept;
+    }
+
+    state parse_udp {
+        packet.extract(hdr.udp);
+        transition accept;
+    }
+
 
 }
 
@@ -222,10 +215,7 @@ control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
 
-    counter(MAX_TUNNEL_ID, CounterType.packets_and_bytes) ingressTunnelCounter;
-    counter(MAX_TUNNEL_ID, CounterType.packets_and_bytes) egressTunnelCounter;
-
-    action drop() {
+     action drop() {
         mark_to_drop();
     }
     
@@ -234,26 +224,6 @@ control MyIngress(inout headers hdr,
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
-    }
-
-    action myTunnel_ingress(bit<16> dst_id) {
-        hdr.myTunnel.setValid();
-        hdr.myTunnel.dst_id = dst_id;
-        hdr.myTunnel.proto_id = hdr.ethernet.etherType;
-        hdr.ethernet.etherType = TYPE_MYTUNNEL;
-        ingressTunnelCounter.count((bit<32>) hdr.myTunnel.dst_id);
-    }
-
-    action myTunnel_forward(egressSpec_t port) {
-        standard_metadata.egress_spec = port;
-    }
-
-    action myTunnel_egress(macAddr_t dstAddr, egressSpec_t port) {
-        standard_metadata.egress_spec = port;
-        hdr.ethernet.dstAddr = dstAddr;
-        hdr.ethernet.etherType = hdr.myTunnel.proto_id;
-        hdr.myTunnel.setInvalid();
-        egressTunnelCounter.count((bit<32>) hdr.myTunnel.dst_id);
     }
 
     table blockedPorts_exact {
@@ -273,20 +243,6 @@ control MyIngress(inout headers hdr,
         }
         actions = {
             ipv4_forward;
-            myTunnel_ingress;
-            drop;
-        }
-        size = 1024;
-        default_action = drop();
-    }
-
-    table myTunnel_exact {
-        key = {
-            hdr.myTunnel.dst_id: exact;
-        }
-        actions = {
-            myTunnel_forward;
-            myTunnel_egress;
             drop;
         }
         size = 1024;
@@ -297,15 +253,12 @@ control MyIngress(inout headers hdr,
         
         blockedPorts_exact.apply();
 
-
-        if (hdr.ipv4.isValid() && !hdr.myTunnel.isValid()) {
-            // Process only non-tunneled IPv4 packets.
+        if (hdr.ipv4.isValid()) {
             ipv4_lpm.apply();
         }
 
-        if (hdr.myTunnel.isValid()) {
-            // Process all tunneled packets.
-            myTunnel_exact.apply();
+        if (hdr.ipv6.isValid()) {
+ 
         }
     }
 
@@ -319,7 +272,7 @@ control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
  
-    // Table loosely based on http://csie.nqu.edu.tw/smallko/sdn/p4-clone.htm 
+    
 
     action action_clone_e2e() {
         clone(CloneType.E2E, MIRROR_SESSION);
@@ -374,7 +327,6 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
 control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
-        packet.emit(hdr.myTunnel);
         packet.emit(hdr.ipv4);
         packet.emit(hdr.ipv6);
         packet.emit(hdr.icmp);
