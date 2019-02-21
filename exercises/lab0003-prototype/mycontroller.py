@@ -38,6 +38,23 @@ def writeForwardingRule(p4info_helper, switch, dst_ip_addr, dst_eth_addr, egress
     switch.WriteTableEntry(table_entry)
     print "Installed forwarding rule on %s" % switch.name
 
+def writeFilteringRule(p4info_helper, switch, protocol, port, direction):
+
+    action_name = "MyEgress.action_clone_e2e"
+    table_name  = "MyEgress.table_" + protocol + "_" + direction + "Port_exact"
+    match_field = "hdr." + protocol + "." + direction + "Port"
+    table_entry = p4info_helper.buildTableEntry(
+        table_name=table_name,
+        match_fields={ match_field: port },
+        action_name=action_name)
+    switch.WriteTableEntry(table_entry)
+    print "Installed filtering rule on %s" % switch.name
+
+def writeFilteringRules(p4info_helper, switch, protocol, port):
+ 
+    writeFilteringRule(p4info_helper, switch, protocol, port, "src")
+    writeFilteringRule(p4info_helper, switch, protocol, port, "dst")
+
 def readTableRules(p4info_helper, sw):
     """
     Reads the table entries from all tables on the switch.
@@ -132,6 +149,8 @@ def main(p4info_file_path, bmv2_file_path):
 
         writeForwardingRule(p4info_helper, switch=s2, dst_ip_addr="10.0.1.1", dst_eth_addr="00:00:00:00:01:01", egress_port=2)
         writeForwardingRule(p4info_helper, switch=s2, dst_ip_addr="10.0.2.2", dst_eth_addr="00:00:00:00:02:02", egress_port=1)
+
+        writeFilteringRules(p4info_helper, switch=s1, protocol="tcp", port=1234)
 
         setupMirrorSession(p4info_helper, switch=s1, session_id=1, egress_port=3)
 

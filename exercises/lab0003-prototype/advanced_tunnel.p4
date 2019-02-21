@@ -272,13 +272,11 @@ control MyEgress(inout headers hdr,
                  inout metadata meta,
                  inout standard_metadata_t standard_metadata) {
  
-    
-
     action action_clone_e2e() {
         clone(CloneType.E2E, MIRROR_SESSION);
     }
 
-    table table_clone_e2e {
+    table table_icmp {
         actions = {
             action_clone_e2e;
         }
@@ -286,10 +284,69 @@ control MyEgress(inout headers hdr,
         default_action = action_clone_e2e();
     }
 
+    table table_tcp_srcPort_exact {
+        key = {
+            hdr.tcp.srcPort : exact;
+        }
+        actions = {
+            action_clone_e2e;
+            NoAction;
+        }
+        default_action = NoAction;
+    }
+
+    table table_tcp_dstPort_exact {
+        key = {
+            hdr.tcp.dstPort : exact;
+        }
+        actions = {
+            action_clone_e2e;
+            NoAction;
+        }
+        default_action = NoAction;
+    }
+
+    table table_udp_srcPort_exact {
+        key = {
+            hdr.udp.srcPort : exact;
+        }
+        actions = {
+            action_clone_e2e;
+            NoAction;
+        }
+        default_action = NoAction;
+    }
+
+    table table_udp_dstPort_exact {
+        key = {
+            hdr.udp.dstPort : exact;
+        }
+        actions = {
+            action_clone_e2e;
+            NoAction;
+        }
+        default_action = NoAction;
+    }
+
     apply {
 
         if (standard_metadata.instance_type == 0) {
-            table_clone_e2e.apply();
+            if (hdr.ipv4.isValid()) {
+                if (hdr.icmp.isValid()) {
+                    table_icmp.apply();
+                }
+                else if (hdr.tcp.isValid()) {
+                    table_tcp_srcPort_exact.apply();
+                    table_tcp_dstPort_exact.apply(); 
+                }
+                else if (hdr.udp.isValid()) {
+                    table_udp_srcPort_exact.apply();
+                    table_udp_dstPort_exact.apply();
+                }    
+
+            } 
+            else if (hdr.ipv6.isValid()) {} 
+
         }
 
     }
