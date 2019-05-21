@@ -106,7 +106,7 @@ mkdir -p build
 cd build
 cmake ..
 make -j${NUM_CORES}
-# make -j${NUM_CORES} check <- skip tests as p4c tests are failing currently
+# make -j${NUM_CORES} check
 sudo make install
 sudo ldconfig
 cd ..
@@ -114,7 +114,7 @@ cd ..
 
 # Tutorials
 sudo pip install crcmod
-git clone https://github.com/p4lang/tutorials
+git clone https://github.com/jonadmark/tutorials
 sudo mv tutorials /home/p4
 sudo chown -R p4:p4 /home/p4/tutorials
 
