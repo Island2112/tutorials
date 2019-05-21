@@ -18,6 +18,7 @@ import sys
 from google.rpc import status_pb2, code_pb2
 import grpc
 from p4.v1 import p4runtime_pb2
+from p4.v1 import p4runtime_pb2_grpc
 
 # Used to indicate that the gRPC error Status object returned by the server has
 # an incorrect format.
