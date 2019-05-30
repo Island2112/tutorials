@@ -72,6 +72,7 @@ echo "p4 ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/99_p4
 chmod 440 /etc/sudoers.d/99_p4
 usermod -aG vboxsf p4
 
+cp ./p4-logo.png /home/vagrant/
 cd /usr/share/lubuntu/wallpapers/
 cp /home/vagrant/p4-logo.png .
 rm lubuntu-default-wallpaper.png
