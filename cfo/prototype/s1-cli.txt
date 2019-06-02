@@ -1,4 +1,0 @@
-table_add MyIngress.ipv4_lpm MyIngress.ipv4_forward 10.0.1.1/32 => 00:00:00:00:01:01 1
-table_add MyIngress.ipv4_lpm MyIngress.ipv4_forward 10.0.2.2/32 => 00:00:00:00:02:02 2
-table_add MyIngress.blockedPorts_exact MyIngress.drop 3 =>
-mirroring_add 1 3
